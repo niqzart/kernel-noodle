@@ -34,6 +34,7 @@ static int read_buffer(const char __user *buffer, size_t len) {
     return 0;
 }
 
+struct mutex nq_mutex_area_struct;
 static struct vm_area_struct *vm_area_struct;
 
 static ssize_t proc_vm_area_write(struct file *file, const char __user *buffer, size_t len,
@@ -58,6 +59,11 @@ static ssize_t proc_vm_area_write(struct file *file, const char __user *buffer, 
     if (!found_pid) {
         pr_alert("Error: process not found\n");
         return -ESRCH;
+    }
+
+    if (!mutex_trylock(&nq_mutex_area_struct)) {
+        pr_alert("Error: can't acquire mutex\n");
+        return -EBUSY;
     }
 
     task = get_pid_task(found_pid, PIDTYPE_PID);
@@ -101,9 +107,11 @@ static ssize_t proc_vm_area_read(struct file *file, char __user *buffer, size_t 
     }
 
     *offset += length;
+    mutex_unlock(&nq_mutex_area_struct);
     return length;
 }
 
+struct mutex nq_mutex_inode;
 static struct inode *inode;
 
 static ssize_t proc_inode_write(struct file *file, const char __user *buffer, size_t len,
@@ -117,6 +125,11 @@ static ssize_t proc_inode_write(struct file *file, const char __user *buffer, si
     if (error) {
         pr_alert("Error %d parsing path %s\n", error, nq_buffer);
         return -EINVAL;
+    }
+
+    if (!mutex_trylock(&nq_mutex_inode)) {
+        pr_alert("Error: can't acquire mutex\n");
+        return -EBUSY;
     }
 
     inode = path.dentry->d_inode;
@@ -153,6 +166,7 @@ static ssize_t proc_inode_read(struct file *file, char __user *buffer, size_t le
     }
 
     *offset += length;
+    mutex_unlock(&nq_mutex_inode);
     return length;
 }
 

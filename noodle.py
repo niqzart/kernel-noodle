@@ -1,6 +1,7 @@
 from datetime import datetime
 from os import system
 from pathlib import Path
+from time import sleep
 from typing import Optional
 
 from pydantic import BaseModel, validator, Field
@@ -20,6 +21,19 @@ def system_safe(command: str) -> None:
             error = f.read()
         error_path.unlink()
         raise Exception(f"Error occurred: {error}")
+
+
+def system_retry(command: str, retries: int, wait: float) -> None:
+    for i in range(retries):
+        try:
+            system_safe(command)
+            return
+        except Exception as e:
+            if "Error: can't acquire mutex" not in e.args[0]:
+                raise e
+            if i == retries - 1:
+                raise e
+            sleep(wait)
 
 
 def datetime_converter(var: str):
@@ -44,7 +58,7 @@ class Inode(BaseModel):
 
 @app.command("inode")
 def get_inode(filepath: Path) -> None:
-    system_safe(f"echo -n '{filepath}' > /proc/nq_noodle_inode")
+    system_retry(f"echo -n '{filepath}' > /proc/nq_noodle_inode", 10, 0.2)
     system_safe(f"cat /proc/nq_noodle_inode > tmp.txt")
     inode = Inode.parse_file("tmp.txt")
     data_path.unlink()
@@ -85,7 +99,7 @@ class VMArea(BaseModel):
 
 @app.command("vm_area")
 def get_vm_area(pid: int) -> None:
-    system_safe(f"echo -n '{pid}' > /proc/nq_noodle_vm_area")
+    system_retry(f"echo -n '{pid}' > /proc/nq_noodle_vm_area", 10, 0.1)
     system_safe(f"cat /proc/nq_noodle_vm_area > tmp.txt")
     vm_area = VMArea.parse_file("tmp.txt")
     data_path.unlink()
