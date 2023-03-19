@@ -47,17 +47,17 @@ static ssize_t proc_vm_area_write(struct file *file, const char __user *buffer, 
 
     if (sscanf(nq_buffer, "%d", &pid) != 1) {
         pr_alert("Error: wrong amount of arguments\n");
-        return -EFAULT;
+        return -E2BIG;
     }
     if (!pid) {
         pr_alert("Error: bad argument\n");
-        return -EFAULT;
+        return -EINVAL;
     }
 
     found_pid = find_get_pid(pid);
     if (!found_pid) {
         pr_alert("Error: process not found\n");
-        return -EFAULT;
+        return -ESRCH;
     }
 
     task = get_pid_task(found_pid, PIDTYPE_PID);
@@ -74,12 +74,12 @@ static ssize_t proc_vm_area_read(struct file *file, char __user *buffer, size_t 
 
     if (len < BUFFER_LENGTH) {
         pr_alert("Buffer size too small\n");
-        return -EFAULT;
+        return -EFBIG;
     }
 
     if (vm_area_struct == NULL) {
         pr_alert("No vm_area_struct fetched\n");
-        return -EFAULT;
+        return -ENODATA;
     }
 
     if (vm_area_struct->vm_file == NULL) {
@@ -116,7 +116,7 @@ static ssize_t proc_inode_write(struct file *file, const char __user *buffer, si
     error = kern_path(nq_buffer, LOOKUP_FOLLOW, &path);
     if (error) {
         pr_alert("Error %d parsing path %s\n", error, nq_buffer);
-        return -EFAULT;
+        return -EINVAL;
     }
 
     inode = path.dentry->d_inode;
@@ -132,12 +132,12 @@ static ssize_t proc_inode_read(struct file *file, char __user *buffer, size_t le
 
     if (len < BUFFER_LENGTH) {
         pr_alert("Buffer size too small\n");
-        return -EFAULT;
+        return -EFBIG;
     }
 
     if (inode == NULL) {
         pr_alert("No inode fetched\n");
-        return -EFAULT;
+        return -ENODATA;
     }
 
     length = sprintf(nq_buffer,
