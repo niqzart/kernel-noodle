@@ -1,0 +1,10 @@
+.vscode
+report*
+*.o
+*.ko
+*.cmd
+*.older
+*.symvers
+*.out
+*.mod.c
+*.mod
